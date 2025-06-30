@@ -51,7 +51,7 @@ if (srcFiles.length === 0 && srcFolders.length === 0) {
 // src -> dist
 const validDistFiles = srcFiles.flatMap((f) => {
   const distBase = f.replace(/^src/, 'dist').replace(/\.ts$/, '');
-  return [`${distBase}.js`, `${distBase}.js.map`];
+  return [`${distBase}.js`, `${distBase}.js.map`, `${distBase}.d.ts`, `${distBase}.d.ts.map`]
 });
 const validDistFolders = srcFolders.map((f) => f.replace(/^src/, 'dist'));
 
@@ -59,20 +59,22 @@ const validDistFolders = srcFolders.map((f) => f.replace(/^src/, 'dist'));
 const distFiles = await fg('dist/**/*', { onlyFiles: true });
 
 for (const file of distFiles) {
+  if (file.endsWith('.d.ts') || file.endsWith('.d.ts.map')) continue;
   if (!validDistFiles.includes(file)) {
     await fs.rm(file, { force: true });
     console.log(`🗑️  Removed obsolete file: ${file}`);
   }
 }
 
-// delete the folders which were deleted in src from dist folder
-const distFolders = await fg('dist/**/', { onlyDirectories: true });
-for (const folder of distFolders) {
-  if (!validDistFolders.includes(folder)) {
-    await fs.rm(folder, { recursive: true, force: true });
-    console.log(`🗑️  Removed obsolete folder: ${folder}`);
-  }
-}
+// // delete the folders which were deleted in src from dist folder
+// const distFolders = await fg('dist/**/', { onlyDirectories: true });
+// for (const folder of distFolders) {
+  
+//   if (!validDistFolders.includes(folder)) {
+//     await fs.rm(folder, { recursive: true, force: true });
+//     console.log(`🗑️  Removed obsolete folder: ${folder}`);
+//   }
+// }
 
 // build ts files
 const entryPoints = await fg('src/**/*.ts');

@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "es2022",
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "moduleResolution": "node",
+    "declarationMap": true,
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
