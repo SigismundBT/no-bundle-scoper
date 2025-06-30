@@ -40,6 +40,7 @@ yarn add -D no-bundle-scoper
 
 ## 🔧 Example usage with esbuild
 
+
 ### in `tsconfig.json`
 
 ```ts
