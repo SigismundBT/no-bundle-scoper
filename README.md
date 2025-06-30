@@ -1,4 +1,4 @@
-[![npm version](https://img.shields.io/npm/v/ts-init-go?color=blue)](https://www.npmjs.com/package/no-bundle-scoper)
+[![npm version](https://img.shields.io/npm/v/no-bundle-scoper?color=blue)](https://www.npmjs.com/package/no-bundle-scoper)
 # no-bundle-scoper
 
 An esbuild plugin for rewriting aliased imports in unbundled output.  
@@ -42,7 +42,7 @@ yarn add -D no-bundle-scoper
 
 ### in `tsconfig.json`
 
-```json
+```ts
 {
   "compilerOptions": {
     ...
