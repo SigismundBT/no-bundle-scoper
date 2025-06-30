@@ -1,0 +1,39 @@
+{
+  "name": "no-bundle-scoper",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.12.4",
+  "description": "An esbuild plugin handle the path alias(es) when you don't want to bundle your source file(s).",
+  "license": "MIT",
+  "author": "",
+  "repository": {
+    "type": "no-bundle-scoper",
+    "url": "https://github.com/SigismundBT/no-bundle-scoper.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "dev": "pnpm run build",
+    "build": "node build.mjs",
+    "format": "prettier --write .",
+    "release": "bumpp --commit --tag",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^24.0.7",
+    "@vitest/ui": "^3.2.4",
+    "bumpp": "^10.2.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "es-module-lexer": "^1.7.0",
+    "esbuild": "^0.25.5",
+    "fast-glob": "^3.3.3",
+    "fs-extra": "^11.3.0",
+    "tsconfck": "^3.1.6"
+  }
+}

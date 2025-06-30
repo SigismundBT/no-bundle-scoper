@@ -1,0 +1,11 @@
+
+node_modules/
+tempDir/
+dist/
+
+*.log
+.cache
+.env
+.idea
+.DS_Store
+.eslintcache
