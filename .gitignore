@@ -2,6 +2,7 @@
 node_modules/
 tempDir/
 dist/
+build.mjs
 
 *.log
 .cache

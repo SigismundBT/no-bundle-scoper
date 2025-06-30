@@ -4,7 +4,7 @@ import { stdin as input, stdout as output } from 'process';
 import fg from 'fast-glob';
 import path from 'path';
 import fs from 'fs-extra';
-import { noBundleScoper } from './dist/index.js';
+//import { noBundleScoper } from './dist/index.js';
 
 const rl = readline.createInterface({ input, output });
 
@@ -66,15 +66,14 @@ for (const file of distFiles) {
   }
 }
 
-// // delete the folders which were deleted in src from dist folder
-// const distFolders = await fg('dist/**/', { onlyDirectories: true });
-// for (const folder of distFolders) {
-  
-//   if (!validDistFolders.includes(folder)) {
-//     await fs.rm(folder, { recursive: true, force: true });
-//     console.log(`🗑️  Removed obsolete folder: ${folder}`);
-//   }
-// }
+// delete the folders which were deleted in src from dist folder
+const distFolders = await fg('dist/**/', { onlyDirectories: true });
+for (const folder of distFolders) {
+  if (!validDistFolders.includes(folder)) {
+    await fs.rm(folder, { recursive: true, force: true });
+    console.log(`🗑️  Removed obsolete folder: ${folder}`);
+  }
+}
 
 // build ts files
 const entryPoints = await fg('src/**/*.ts');
@@ -97,6 +96,11 @@ const outdir = compilerOptions.outDir ?? 'dist';
 const format = moduleValue === 'commonjs' ? 'cjs' : 'esm';
 const target = [compilerOptions.target || 'ES2020'];
 console.log(`🔧 Building with format: "${format}", target: "${target[0]}"`);
+console.log('entryPoints:' )
+console.log(entryPoints)
+console.log('📄 srcFiles:');
+console.log(srcFiles);
+
 
 const buildts = await build({
   entryPoints,
@@ -106,8 +110,9 @@ const buildts = await build({
   target: 'esnext',
   format: 'esm',
   logLevel: 'info',
+  outbase: 'src',
   metafile: true,
-  plugins: [noBundleScoper()]
+  //plugins: [noBundleScoper()]
 });
 
 // console.log('entrypoints: ')

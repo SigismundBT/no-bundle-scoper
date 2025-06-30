@@ -18,3 +18,4 @@ coverage/
 tsconfig.json
 vitest.config.ts
 vitest.config.ts.map
+build.mjs
