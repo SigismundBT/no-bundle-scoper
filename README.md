@@ -1,4 +1,5 @@
 [![npm version](https://img.shields.io/npm/v/no-bundle-scoper?color=blue)](https://www.npmjs.com/package/no-bundle-scoper)
+
 # no-bundle-scoper
 
 An esbuild plugin for rewriting aliased imports in unbundled output.  
@@ -40,7 +41,6 @@ yarn add -D no-bundle-scoper
 
 ## 🔧 Example usage with esbuild
 
-
 ### in `tsconfig.json`
 
 ```ts
@@ -75,6 +75,7 @@ await build({
   plugins: [noBundleScoper()]
 });
 ```
+
 > 📌 `metafile: true` is required — the plugin relies on esbuild's metafile to rewrite imports accurately.
 
 ## 📦 Output Directory Requirement
@@ -89,7 +90,8 @@ This plugin requires at least one of the following to locate your output files:
 
 ---
 
-## ❌ Not compatible tools  
+## ❌ Not compatible tools
+
 `tsup`, `vite`, `rollup... and tools that bundle by default
 
 These tools bundle by default, and they all have their own solution.  
@@ -109,7 +111,7 @@ You won't need this plugin if you use them.
     }
   }
   ```
-  
+
   Only the first one (`src/lib/*`) will be used for rewriting.  
   _Support for fallback paths may be added in the future, but is currently not implemented._
 
@@ -131,4 +133,3 @@ You won't need this plugin if you use them.
 ## License
 
 MIT
-

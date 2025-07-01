@@ -16,7 +16,7 @@
     "test": "vitest run",
     "dev": "pnpm run build",
     "build:types": "tsc --emitDeclarationOnly",
-    "build:js":"node build.mjs",
+    "build:js": "node build.mjs",
     "build": "pnpm run build:types && pnpm run build:js",
     "format": "prettier --write .",
     "release": "bumpp --commit --tag",

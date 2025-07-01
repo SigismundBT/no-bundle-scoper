@@ -4,8 +4,6 @@ import path from 'path';
 import { build } from 'esbuild';
 import { noBundleScoper } from '../src/index';
 
-
-
 const tempDir = '../tempDir';
 
 describe('esbuild plugin alias', () => {

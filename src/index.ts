@@ -6,7 +6,7 @@ import { aliasMatcher } from './utils/aliasMatcher.js';
 import { writeJSImports } from './utils/writeJSImports.js';
 import { logError } from './utils/logError.js';
 
-export function noBundleScoper(tsconfigPath?: string): Plugin {
+export function noBundleScoper(): Plugin {
   return {
     name: 'no-bundle-scoper',
     async setup(build) {
@@ -100,7 +100,12 @@ export function noBundleScoper(tsconfigPath?: string): Plugin {
             const matched = matchers.find(({ regex }) =>
               regex.test(importPath)
             );
-            if (!matched) continue;
+            if (!matched?.config?.target?.length) {
+              console.warn(
+                `[no-bundle-scoper] Skipped unresolved alias: "${importPath}"`
+              );
+              continue;
+            }
 
             //parse matched results
             const matchResult = matched.regex.exec(importPath);
@@ -126,6 +131,7 @@ export function noBundleScoper(tsconfigPath?: string): Plugin {
                   suffix + outputExt
                 );
                 try {
+                  await fs.access(SuffixImportedPath);
                   await writeJSImports(
                     SuffixImportedPath,
                     outputPath,
@@ -149,6 +155,7 @@ export function noBundleScoper(tsconfigPath?: string): Plugin {
                 );
 
                 try {
+                  await fs.access(fullImportedPath);
                   await writeJSImports(
                     fullImportedPath,
                     outputPath,

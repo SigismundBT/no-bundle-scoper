@@ -9,12 +9,13 @@ export async function writeJSImports(
   outputDir: string
 ) {
   //get relative path
-  const relative = path.posix.relative(outputDir, importedPath);
+  const importerDir = path.dirname(outputPath);
+  const relative = path.posix.relative(importerDir, importedPath);
 
   //parse the path into importable form
-  const importPathForReplace = relative.startsWith('.')
-    ? relative
-    : './' + relative;
+  const importPathForReplace = (
+    relative.startsWith('.') ? relative : './' + relative
+  ).replace(/\\/g, '/');
 
   try {
     const code = await fs.readFile(outputPath, 'utf-8');
