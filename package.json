@@ -1,12 +1,12 @@
 {
   "name": "no-bundle-scoper",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "packageManager": "pnpm@10.12.4",
   "description": "An esbuild plugin handle the path alias(es) when you don't want to bundle your source file(s).",
   "license": "MIT",
-  "author": "",
+  "author": "Peyton Lu",
   "repository": {
-    "type": "no-bundle-scoper",
+    "type": "github",
     "url": "https://github.com/SigismundBT/no-bundle-scoper.git"
   },
   "main": "dist/index.js",
