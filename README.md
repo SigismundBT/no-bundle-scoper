@@ -46,7 +46,7 @@ This plugin requires `esbuild` to be installed in your project:
 ````bash
 pnpm add -D esbuild
 
-```
+````
 
 ---
 
