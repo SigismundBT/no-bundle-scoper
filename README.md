@@ -155,7 +155,7 @@ If your project uses a multi-package structure (monorepo),
 you must **build each package separately** and **run this plugin within each subpackage**.  
 It is intentionally not designed to resolve or transform imports across packages.
 
-_This keeps the plugin lightweight, predictable, and avoids unintended cross-package rewrites._ 
+_This keeps the plugin lightweight, predictable, and avoids unintended cross-package rewrites._
 
 ---
 

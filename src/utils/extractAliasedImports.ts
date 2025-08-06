@@ -9,9 +9,7 @@ export function extractAliasedImports(
   for (const imp of imports) {
     for (const [aliasKey, targetPaths] of Object.entries(aliasPaths)) {
       const hasWildcard = aliasKey.includes('*');
-      let regexPattern = aliasKey
-        .replace(/\//g, '\\/')
-        .replace(/\./g, '\\.');
+      let regexPattern = aliasKey.replace(/\//g, '\\/').replace(/\./g, '\\.');
 
       let aliasRegex: RegExp;
 

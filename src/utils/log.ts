@@ -21,7 +21,9 @@ export function log(
   } else {
     finalMessage = style ? style(message) : message;
   }
-  console.log(`${tag(logLable)} ${(tagColor ? tagColor(logTag + ':') : logTag + ':')} ${finalMessage}`);
+  console.log(
+    `${tag(logLable)} ${tagColor ? tagColor(logTag + ':') : logTag + ':'} ${finalMessage}`
+  );
 }
 
 export function logInfo(message?: string) {
@@ -38,7 +40,9 @@ export function logWarn(message?: string) {
 
 export function logError(err?: unknown) {
   if (err instanceof Error) {
-    console.error(`${tag(logLable)} ${error( '❌ ' + err.name)}: ${err.message}`);
+    console.error(
+      `${tag(logLable)} ${error('❌ ' + err.name)}: ${err.message}`
+    );
   } else if (err) {
     console.error(`${tag(logLable)} ${String(err)}`);
   }

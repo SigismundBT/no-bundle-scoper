@@ -5,7 +5,7 @@ import { find } from 'tsconfck';
 import { extractAliasedImports } from './utils/extractAliasedImports.js';
 import { parseImportPath } from './utils/parseImportPath.js';
 import { log, logWarn, logError, logInfo } from './utils/log.js';
-import { info,success } from './utils/colors.js';
+import { info, success } from './utils/colors.js';
 
 import pLimit from 'p-limit';
 const limit = pLimit(10);
@@ -14,7 +14,7 @@ export function noBundleScoper(): Plugin {
   return {
     name: 'no-bundle-scoper',
     async setup(build) {
-      let outDir: string | null
+      let outDir: string | null;
       build.onStart(() => {
         const options = build.initialOptions;
         const absWorkingDir = options.absWorkingDir ?? process.cwd();
@@ -22,17 +22,17 @@ export function noBundleScoper(): Plugin {
         outDir = options.outdir
           ? path.resolve(absWorkingDir, options.outdir)
           : options.outfile
-          ? path.dirname(path.resolve(absWorkingDir, options.outfile))
-          : null;
+            ? path.dirname(path.resolve(absWorkingDir, options.outfile))
+            : null;
 
         if (!outDir) {
-          logError(new Error(`outdir in build is required.`))
-          return
+          logError(new Error(`outdir in build is required.`));
+          return;
         }
       });
 
       build.onEnd(async (args) => {
-        log('Parsing path alias...' ,'▶️ Start', info, );
+        log('Parsing path alias...', '▶️ Start', info);
 
         // Set metaflies
         const meta = args.metafile;
@@ -41,7 +41,7 @@ export function noBundleScoper(): Plugin {
           logError(new Error([`'metafile' must be set to true.`].join(' ')));
           return;
         }
-        
+
         const fileAliasMap = new Map<
           string,
           Array<{ originalAlias: string; parsedImportPath: string }>
@@ -80,7 +80,6 @@ export function noBundleScoper(): Plugin {
           // get project root
           const repoRoot = path.dirname(tsconfigPath);
 
-
           // Get inDir
           const inDir = path.dirname(inputPath);
 
@@ -104,20 +103,22 @@ export function noBundleScoper(): Plugin {
           const tsconfig = JSON.parse(tsconfigRaw);
           const baseUrl = tsconfig.compilerOptions?.baseUrl;
 
-          if(!baseUrl){
-            logError(new Error(`Please set BaseUrl in tsconfig.json: ${tsconfigPath}`))
+          if (!baseUrl) {
+            logError(
+              new Error(`Please set BaseUrl in tsconfig.json: ${tsconfigPath}`)
+            );
             continue;
           }
 
           // get import base
-          const importBase = path.resolve(
-            repoRoot,
-            baseUrl
-          );
+          const importBase = path.resolve(repoRoot, baseUrl);
 
           // get outDirRoot
           const relativeOutDirFromBase = path.relative(importBase, outDir);
-          const absoluteOutDir = path.resolve(importBase, relativeOutDirFromBase);
+          const absoluteOutDir = path.resolve(
+            importBase,
+            relativeOutDirFromBase
+          );
 
           // get inDirRoot
           const relativeinDirFromBase = path.relative(importBase, inDir);
@@ -134,16 +135,18 @@ export function noBundleScoper(): Plugin {
           for (const alias of aliased) {
             const originalAlias = alias.original;
             const resolvedImportPaths = alias.resolvedPaths;
-            console.log(`alias: `, alias)
+            console.log(`alias: `, alias);
 
             // parse resolvedPaths
             for (const resolvedImportPath of resolvedImportPaths) {
-              
-            function withTsExt(filePath: string): string {
-              return path.extname(filePath) ? filePath : filePath + '.ts';
-            }
+              function withTsExt(filePath: string): string {
+                return path.extname(filePath) ? filePath : filePath + '.ts';
+              }
 
-            const resolvedTsPath = path.resolve(importBase, withTsExt(resolvedImportPath));
+              const resolvedTsPath = path.resolve(
+                importBase,
+                withTsExt(resolvedImportPath)
+              );
 
               // access ts files
               try {
@@ -160,26 +163,32 @@ export function noBundleScoper(): Plugin {
                       `Current baseUrl: "${tsconfig.compilerOptions?.baseUrl}"`,
                       `Alias attempted: "${alias.original}"`,
                       `Resolved path: "${resolvedImportPath}"`,
-                      `Parsed ts path: "${resolvedTsPath}"`,
+                      `Parsed ts path: "${resolvedTsPath}"`
                     ].join('\n')
                   )
                 );
                 continue;
-
               }
 
               // parse import path
-              const importPath = parseImportPath(resolvedTsPath, absoluteInDir, absoluteOutDir)
+              const importPath = parseImportPath(
+                resolvedTsPath,
+                absoluteInDir,
+                absoluteOutDir
+              );
 
               try {
-                await fs.access(importPath)
+                await fs.access(importPath);
               } catch {
                 logError(new Error(`Fail to parse import path.`));
                 continue;
               }
 
-              const absoluteOutputPath = path.resolve(process.cwd(), outputPath);
-              const outputDir = path.dirname(absoluteOutputPath)
+              const absoluteOutputPath = path.resolve(
+                process.cwd(),
+                outputPath
+              );
+              const outputDir = path.dirname(absoluteOutputPath);
 
               // get relative import path
               let relativeParsedImportPath = path.relative(
@@ -187,9 +196,15 @@ export function noBundleScoper(): Plugin {
                 importPath
               );
 
-              function normalizeImportPath(relativeParsedImportPath: string): string {
-                const cleaned = relativeParsedImportPath.replace(/\\/g, '/').replace(/\/+/g, '/');
-                const normalized = cleaned.replace(/^(\.\/)+/, './').replace(/^(\.\/)?\.\//, '../');
+              function normalizeImportPath(
+                relativeParsedImportPath: string
+              ): string {
+                const cleaned = relativeParsedImportPath
+                  .replace(/\\/g, '/')
+                  .replace(/\/+/g, '/');
+                const normalized = cleaned
+                  .replace(/^(\.\/)+/, './')
+                  .replace(/^(\.\/)?\.\//, '../');
                 if (
                   normalized.startsWith('./') ||
                   normalized.startsWith('../') ||
@@ -201,7 +216,9 @@ export function noBundleScoper(): Plugin {
                 return './' + normalized;
               }
 
-              const parsedImportPath = normalizeImportPath(relativeParsedImportPath)
+              const parsedImportPath = normalizeImportPath(
+                relativeParsedImportPath
+              );
 
               try {
                 await fs.access(outputPath);
@@ -231,10 +248,7 @@ export function noBundleScoper(): Plugin {
               let readCode = await fs.readFile(outputPath, 'utf-8');
               let updatedCode = readCode;
 
-              for (const {
-                originalAlias,
-                parsedImportPath
-              } of aliasList) {
+              for (const { originalAlias, parsedImportPath } of aliasList) {
                 updatedCode = updatedCode
                   .replace(
                     new RegExp(`from\\s+["']${originalAlias}["']`, 'g'),

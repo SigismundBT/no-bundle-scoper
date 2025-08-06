@@ -5,6 +5,7 @@ This release introduces a fully functional and tested version of the plugin.
 Previous versions were non-functional due to incomplete alias parsing and incorrect path rewriting.
 
 ✅ Highlights:
+
 - Alias paths are now correctly resolved and rewritten to relative paths in output.
 - Supports wildcard (`@app/*`) and fixed (`@alias`) style imports.
 - Unmatched aliases are preserved as-is (e.g., `@ghost/...`).
