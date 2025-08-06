@@ -4,10 +4,11 @@ import { stdin as input, stdout as output } from 'process';
 import fg from 'fast-glob';
 import path from 'path';
 import fs from 'fs-extra';
-//import { noBundleScoper } from './dist/index.js';
+import { noBundleScoper } from './dist/index.js';
 
 const rl = readline.createInterface({ input, output });
 
+console.log('✅ Start build Process.');
 // get the files and folders in src folder
 const srcPath = path.join(import.meta.dirname, 'src');
 
@@ -96,11 +97,6 @@ const outdir = compilerOptions.outDir ?? 'dist';
 const format = moduleValue === 'commonjs' ? 'cjs' : 'esm';
 const target = [compilerOptions.target || 'ES2020'];
 console.log(`🔧 Building with format: "${format}", target: "${target[0]}"`);
-console.log('entryPoints:' )
-console.log(entryPoints)
-console.log('📄 srcFiles:');
-console.log(srcFiles);
-
 
 const buildts = await build({
   entryPoints,
@@ -112,15 +108,8 @@ const buildts = await build({
   logLevel: 'info',
   outbase: 'src',
   metafile: true,
-  //plugins: [noBundleScoper()]
+  plugins: [noBundleScoper()]
 });
-
-// console.log('entrypoints: ')
-// console.log(buildts.metafile)
-
-for (const file in buildts.metafile.outputs) {
-  console.log(`📦 Built file: ${file}`);
-}
 
 // add empty folders from src to dist folder
 for (const folder of srcFolders) {
@@ -134,6 +123,13 @@ for (const folder of srcFolders) {
     console.log(`📁 Created folder: ${distFolder}`);
   }
 }
+
+if(buildts.metafile){
+  for (const file in buildts.metafile.outputs) {
+    if(!buildts.metafile.outputs)
+    console.log(`📦 Built file: ${file}`);
+  };
+};
 
 console.log('✅ Build script completed.');
 process.exit(0);

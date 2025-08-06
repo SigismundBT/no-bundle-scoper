@@ -13,8 +13,12 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@app/*": ["src/*"],
+      "@app2/*": ["src/utils/*"],
+      "@test": ["src/utils/t3.ts"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "index copy.ts"],
   "exclude": ["node_modules", "dist"]
 }

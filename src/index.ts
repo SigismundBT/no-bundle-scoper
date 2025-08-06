@@ -2,177 +2,262 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { Plugin } from 'esbuild';
 import { find } from 'tsconfck';
-import { aliasMatcher } from './utils/aliasMatcher.js';
-import { writeJSImports } from './utils/writeJSImports.js';
-import { logError } from './utils/logError.js';
+import { extractAliasedImports } from './utils/extractAliasedImports.js';
+import { parseImportPath } from './utils/parseImportPath.js';
+import { log, logWarn, logError, logInfo } from './utils/log.js';
+import { info,success } from './utils/colors.js';
+
+import pLimit from 'p-limit';
+const limit = pLimit(10);
 
 export function noBundleScoper(): Plugin {
   return {
     name: 'no-bundle-scoper',
     async setup(build) {
-      build.onEnd(async (args) => {
-        // Get build options
-        const entryPoints = build.initialOptions.entryPoints as string[];
-        const tsconfigResults = await Promise.all(
-          entryPoints.map(async (entry) => {
-            return await find(entry);
-          })
-        );
+      let outDir: string | null
+      build.onStart(() => {
+        const options = build.initialOptions;
+        const absWorkingDir = options.absWorkingDir ?? process.cwd();
 
-        //get alias, baseUrl and target
-        type AliasConfig = {
-          baseUrl: string;
-          target: string[];
-          outDir: string;
-        };
+        outDir = options.outdir
+          ? path.resolve(absWorkingDir, options.outdir)
+          : options.outfile
+          ? path.dirname(path.resolve(absWorkingDir, options.outfile))
+          : null;
 
-        type Configs = {
-          [alias: string]: AliasConfig;
-        };
-
-        const configs: Configs = {};
-
-        for (const tsconfigResult of tsconfigResults) {
-          if (!tsconfigResult) continue;
-
-          let readtsconfig: any;
-          try {
-            readtsconfig = JSON.parse(fs.readFileSync(tsconfigResult, 'utf-8'));
-          } catch (err) {
-            logError(`❌ Failed to parse tsconfig: ${tsconfigResult}`, err);
-            continue;
-          }
-
-          const compilerOptions = readtsconfig.compilerOptions ?? {};
-          const paths = compilerOptions.paths ?? {};
-          const baseUrl = path.resolve(
-            path.dirname(tsconfigResult),
-            compilerOptions.baseUrl ?? '.'
-          );
-
-          const outDir =
-            readtsconfig.compilerOptions?.outDir ??
-            build.initialOptions.outdir ??
-            (build.initialOptions.outfile
-              ? path.dirname(build.initialOptions.outfile)
-              : undefined);
-
-          if (!outDir) {
-            throw new Error(
-              '[no-bundle-scoper] Could not determine output directory. Please set compilerOptions.outDir in tsconfig.json or provide outdir/outfile in esbuild options.'
-            );
-          }
-
-          try {
-            await fs.access(outDir);
-          } catch (err) {
-            logError(
-              `❌ Output directory "${outDir}" from ${tsconfigResult} is not accessible.`,
-              err
-            );
-            continue;
-          }
-
-          for (const [alias, target] of Object.entries(paths)) {
-            const normalizedTarget = Array.isArray(target) ? target : [target];
-            configs[alias] = { baseUrl, target: normalizedTarget, outDir };
-          }
+        if (!outDir) {
+          logError(new Error(`outdir in build is required.`))
+          return
         }
+      });
 
-        //get outputs from metaflies
+      build.onEnd(async (args) => {
+        log('Parsing path alias...' ,'▶️ Start', info, );
+
+        // Set metaflies
         const meta = args.metafile;
 
-        if (!meta) return;
-        const outputPaths = Object.keys(meta.outputs);
+        if (!meta) {
+          logError(new Error([`'metafile' must be set to true.`].join(' ')));
+          return;
+        }
+        
+        const fileAliasMap = new Map<
+          string,
+          Array<{ originalAlias: string; parsedImportPath: string }>
+        >();
 
-        //config parser
-        const matchers = aliasMatcher(configs);
+        // parsing meta.outputs
+        for (const [outputPath, outputMeta] of Object.entries(meta.outputs)) {
+          // Get input paths
+          const inputPaths = Object.keys(outputMeta.inputs ?? {});
+          if (inputPaths.length > 1) {
+            logWarn(`Multiple inputs for ${outputPath}, using the first one.`);
+          } // rare case handling: if inputPaths has multiple paths
 
-        //parse every output file
-        for (const outputPath of outputPaths) {
-          //check if output entry point has import(s)
-          const outputImports = meta.outputs[outputPath].imports;
-          if (!outputImports || outputImports.length === 0) continue;
+          // set input path as string
+          const inputPath = inputPaths[0];
+          if (!inputPath) {
+            logWarn(`No input found for output: ${outputPath}.`);
+            continue;
+          } // make sure input path's existence.
 
-          //parse each imports from every output file
-          for (const { path: importPath } of outputImports) {
-            //check if imported path matches config.alias
-            const matched = matchers.find(({ regex }) =>
-              regex.test(importPath)
+          // get imports
+          const imports = (outputMeta.imports ?? []).map((i) => i.path);
+          if (!imports || imports.length === 0) continue; // Only parsing with imports
+
+          // get tsconfig paths by input path
+          const tsconfigPath = await find(inputPath);
+          if (!tsconfigPath) {
+            logError(
+              new Error(
+                `Unable to find tsconfig.json for ${inputPath}. Skip parsing this import path.`
+              )
             );
-            if (!matched?.config?.target?.length) {
-              console.warn(
-                `[no-bundle-scoper] Skipped unresolved alias: "${importPath}"`
-              );
-              continue;
+            continue;
+          } // make sure each outputs match a correlated tsconfig.json file
+
+          // get project root
+          const repoRoot = path.dirname(tsconfigPath);
+
+
+          // Get inDir
+          const inDir = path.dirname(inputPath);
+
+          if (!outDir || !inDir) continue;
+
+          // read tsconfig
+          let tsconfigRaw: string;
+
+          try {
+            tsconfigRaw = await fs.readFile(tsconfigPath, 'utf-8');
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            logError(
+              new Error(
+                `Failed to read tsconfig.json at ${tsconfigPath}: ${errorMsg}`
+              )
+            );
+            continue;
+          }
+
+          const tsconfig = JSON.parse(tsconfigRaw);
+          const baseUrl = tsconfig.compilerOptions?.baseUrl;
+
+          if(!baseUrl){
+            logError(new Error(`Please set BaseUrl in tsconfig.json: ${tsconfigPath}`))
+            continue;
+          }
+
+          // get import base
+          const importBase = path.resolve(
+            repoRoot,
+            baseUrl
+          );
+
+          // get outDirRoot
+          const relativeOutDirFromBase = path.relative(importBase, outDir);
+          const absoluteOutDir = path.resolve(importBase, relativeOutDirFromBase);
+
+          // get inDirRoot
+          const relativeinDirFromBase = path.relative(importBase, inDir);
+          const inDirRoot = relativeinDirFromBase.split(path.sep)[0];
+          const absoluteInDir = path.resolve(importBase, inDirRoot);
+
+          // get compilerOptions.paths;
+          const aliasPaths = tsconfig.compilerOptions?.paths;
+
+          // get parsed alias paths
+          const aliased = extractAliasedImports(imports, aliasPaths);
+          if (!aliased || aliased.length === 0) continue;
+
+          for (const alias of aliased) {
+            const originalAlias = alias.original;
+            const resolvedImportPaths = alias.resolvedPaths;
+            console.log(`alias: `, alias)
+
+            // parse resolvedPaths
+            for (const resolvedImportPath of resolvedImportPaths) {
+              
+            function withTsExt(filePath: string): string {
+              return path.extname(filePath) ? filePath : filePath + '.ts';
             }
 
-            //parse matched results
-            const matchResult = matched.regex.exec(importPath);
-            if (!matchResult) continue;
+            const resolvedTsPath = path.resolve(importBase, withTsExt(resolvedImportPath));
 
-            const [full, suffix] = matchResult;
-
-            const config = matched.config; // parsed config
-
-            const outputDir = config.outDir;
-
-            //parse outputPath
-            const parsedOutput = path.parse(outputPath);
-            const outputExt = parsedOutput.ext;
-
-            //check is the scope has *
-            const isValid = !!(suffix && full.endsWith(suffix));
-
-            switch (isValid) {
-              case true:
-                const SuffixImportedPath = path.posix.join(
-                  outputDir,
-                  suffix + outputExt
+              // access ts files
+              try {
+                await fs.access(resolvedTsPath);
+              } catch {
+                logError(
+                  new Error(
+                    [
+                      `Failed to resolve alias: "${alias.original}" → "${resolvedImportPath + '.ts'}".`,
+                      `Please check the following:`,
+                      `1. The file "${resolvedImportPath + '.ts'}" actually exists.`,
+                      `2. The "baseUrl" and "paths" in your tsconfig.json are correctly set.`,
+                      ``,
+                      `Current baseUrl: "${tsconfig.compilerOptions?.baseUrl}"`,
+                      `Alias attempted: "${alias.original}"`,
+                      `Resolved path: "${resolvedImportPath}"`,
+                      `Parsed ts path: "${resolvedTsPath}"`,
+                    ].join('\n')
+                  )
                 );
-                try {
-                  await fs.access(SuffixImportedPath);
-                  await writeJSImports(
-                    SuffixImportedPath,
-                    outputPath,
-                    importPath,
-                    outputDir
-                  );
-                } catch (err) {
-                  logError(
-                    `❌ Failed to rewrite import "${importPath}" in ${outputPath}`,
-                    err
-                  );
+                continue;
+
+              }
+
+              // parse import path
+              const importPath = parseImportPath(resolvedTsPath, absoluteInDir, absoluteOutDir)
+
+              try {
+                await fs.access(importPath)
+              } catch {
+                logError(new Error(`Fail to parse import path.`));
+                continue;
+              }
+
+              const absoluteOutputPath = path.resolve(process.cwd(), outputPath);
+              const outputDir = path.dirname(absoluteOutputPath)
+
+              // get relative import path
+              let relativeParsedImportPath = path.relative(
+                outputDir,
+                importPath
+              );
+
+              function normalizeImportPath(relativeParsedImportPath: string): string {
+                const cleaned = relativeParsedImportPath.replace(/\\/g, '/').replace(/\/+/g, '/');
+                const normalized = cleaned.replace(/^(\.\/)+/, './').replace(/^(\.\/)?\.\//, '../');
+                if (
+                  normalized.startsWith('./') ||
+                  normalized.startsWith('../') ||
+                  normalized.startsWith('/') ||
+                  normalized.includes(':') // 防止補到 URL 或 Windows 路徑
+                ) {
+                  return normalized;
                 }
+                return './' + normalized;
+              }
 
-                break;
+              const parsedImportPath = normalizeImportPath(relativeParsedImportPath)
 
-              case false:
-                const cleanAlias = matched?.alias.replace(/^[@#~]/, '');
-                const fullImportedPath = path.posix.join(
-                  outputDir,
-                  cleanAlias + outputExt
-                );
+              try {
+                await fs.access(outputPath);
+                await fs.access(importPath);
+              } catch {
+                logError(new Error(`Fail to access file ${outputPath}`));
+                continue;
+              }
 
-                try {
-                  await fs.access(fullImportedPath);
-                  await writeJSImports(
-                    fullImportedPath,
-                    outputPath,
-                    importPath,
-                    outputDir
-                  );
-                } catch (err) {
-                  logError(
-                    `❌ Failed to rewrite import "${importPath}" in ${outputPath}`,
-                    err
-                  );
-                }
+              if (!fileAliasMap.has(outputPath)) {
+                fileAliasMap.set(outputPath, []);
+              }
 
-                break;
+              fileAliasMap.get(outputPath)!.push({
+                originalAlias,
+                parsedImportPath
+              });
             }
           }
         }
+
+        const writeTasks: Promise<any>[] = [];
+
+        for (const [outputPath, aliasList] of fileAliasMap.entries()) {
+          writeTasks.push(
+            limit(async () => {
+              let readCode = await fs.readFile(outputPath, 'utf-8');
+              let updatedCode = readCode;
+
+              for (const {
+                originalAlias,
+                parsedImportPath
+              } of aliasList) {
+                updatedCode = updatedCode
+                  .replace(
+                    new RegExp(`from\\s+["']${originalAlias}["']`, 'g'),
+                    `from '${parsedImportPath}'`
+                  )
+                  .replace(
+                    new RegExp(`import\\(["']${originalAlias}["']\\)`, 'g'),
+                    `import('${parsedImportPath}')`
+                  );
+              }
+
+              if (updatedCode !== readCode) {
+                await fs.writeFile(outputPath, updatedCode, 'utf-8');
+                logInfo(`Updated: ${outputPath}`);
+              } else {
+                logInfo(`No changes for: ${outputPath}`);
+              }
+            })
+          );
+        }
+
+        await Promise.all(writeTasks);
+        log('Task completed.', '🟢 Finished', success);
       });
     }
   };

@@ -47,7 +47,7 @@ yarn add -D no-bundle-scoper
 {
   "compilerOptions": {
     ...
-    "baseUrl": ".", //you can set what ever you want
+    "baseUrl": ".", //
     "paths": {
       "@app/*": ["src/*"],
       "@app2": ["src/utils/app2.ts"]
@@ -65,7 +65,7 @@ import { noBundleScoper } from 'no-bundle-scoper';
 
 await build({
   entryPoints: ['src/index.ts'],
-  outdir: 'dist',
+  outdir: 'dist', // REQUIRED! This plugin needs a fixed outdir.
   bundle: false, // yes, or why do you want to use this plugin????
   platform: 'node',
   target: 'esnext',
@@ -101,8 +101,30 @@ You won't need this plugin if you use them.
 
 ## ⚠ Limitations
 
-- **Only the first path** in each `tsconfig.json` alias will be used.  
-  If you define fallback targets like this:
+This plugin is intentionally limited in scope to stay stable and focused.  
+It assumes you're working in a standard single-package setup with a clear `inDir → outDir` compilation structure.
+
+### ✅ Assumptions
+
+- **All source files are located inside a single directory (usually `src/`)**,  
+  defined via `baseUrl` in your `tsconfig.json`.
+
+- **All compiled output goes into a single `outDir`**,  
+  preserving the folder structure of your source directory.
+
+- **Only aliases that resolve to files within your source tree (`baseUrl`) will be rewritten.**  
+  Aliases resolving to paths outside the source root (e.g., `../../shared/foo.ts`) will be skipped.  
+  This avoids broken imports due to missing `.js` output or nonstandard build setups.
+
+- **This plugin does not touch external imports**,  
+  including packages from `node_modules`, native modules (e.g. `fs`, `path`), or anything marked `external: true` by esbuild.
+
+---
+
+### 🚫 Unsupported features
+
+- **Only the first path** in each alias entry will be used.  
+  If you define fallback targets like:
 
   ```json
   {
@@ -113,7 +135,29 @@ You won't need this plugin if you use them.
   ```
 
   Only the first one (`src/lib/*`) will be used for rewriting.  
-  _Support for fallback paths may be added in the future, but is currently not implemented._
+  _Support for fallback resolution may be added in the future, but is currently not implemented._
+
+- **Alias-to-alias (chained alias) resolution is not supported.**  
+  I don't want to make this plugin fall into the void and become a black hole of unstable resolution logic.  
+  So no, `no-bundle-scoper` is not going to support it anytime soon.
+
+---
+
+### ⚠️ Important
+
+This plugin **will not handle**:
+
+- Paths that resolve to files outside of your source tree (e.g., `../../shared/xxx.ts`)
+- Outputs from external or custom build systems
+- Aliases pointing to already-compiled files (e.g., anything inside your `dist/` folder)
+
+If your project uses a multi-package structure (monorepo),  
+you must **build each package separately** and **run this plugin within each subpackage**.  
+It is intentionally not designed to resolve or transform imports across packages.
+
+_This keeps the plugin lightweight, predictable, and avoids unintended cross-package rewrites._ 
+
+---
 
 - **Alias-to-alias (chained alias) resolution is not supported.**  
   I don't want to make my plugin fall into the void and make it unstable,  
