@@ -39,6 +39,16 @@ yarn add -D no-bundle-scoper
 
 ---
 
+## 🔌 Peer Dependencies
+
+This plugin requires `esbuild` to be installed in your project:
+
+```bash
+pnpm add -D esbuild
+
+
+---
+
 ## 🔧 Example usage with esbuild
 
 ### in `tsconfig.json`
@@ -76,23 +86,20 @@ await build({
 });
 ```
 
+---
+
 > 📌 `metafile: true` is required — the plugin relies on esbuild's metafile to rewrite imports accurately.
 
 ## 📦 Output Directory Requirement
 
-This plugin requires at least one of the following to locate your output files:
-
-- `tsconfig.compilerOptions.outDir`
-- `esbuild`'s `outdir`
-- or `outfile` (will use its directory)
-
-> Otherwise, the plugin will throw an error.
+This plugin currently **requires** `esbuild`'s `outdir` option to locate your output files.  
+The `outfile` option is **not supported yet**, but may be considered in the future.
 
 ---
 
 ## ❌ Not compatible tools
 
-`tsup`, `vite`, `rollup... and tools that bundle by default
+`tsup`, `vite`, `rollup`... and tools that bundle by default
 
 These tools bundle by default, and they all have their own solution.  
 You won't need this plugin if you use them.
@@ -113,7 +120,7 @@ It assumes you're working in a standard single-package setup with a clear `inDir
   preserving the folder structure of your source directory.
 
 - **Only aliases that resolve to files within your source tree (`baseUrl`) will be rewritten.**  
-  Aliases resolving to paths outside the source root (e.g., `../../shared/foo.ts`) will be skipped.  
+  Aliases resolving to files outside of either `inDir` or `outDir` will be skipped.
   This avoids broken imports due to missing `.js` output or nonstandard build setups.
 
 - **This plugin does not touch external imports**,  
