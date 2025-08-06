@@ -43,7 +43,7 @@ yarn add -D no-bundle-scoper
 
 This plugin requires `esbuild` to be installed in your project:
 
-```bash
+````bash
 pnpm add -D esbuild
 
 
@@ -65,7 +65,7 @@ pnpm add -D esbuild
   }
 }
 
-```
+````
 
 ### in your build sript
 
