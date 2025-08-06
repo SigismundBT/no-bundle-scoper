@@ -4,7 +4,7 @@ import { stdin as input, stdout as output } from 'process';
 import fg from 'fast-glob';
 import path from 'path';
 import fs from 'fs-extra';
-import { noBundleScoper } from './dist/index.js';
+//import { noBundleScoper } from './dist/index.js';
 
 const rl = readline.createInterface({ input, output });
 
@@ -108,7 +108,7 @@ const buildts = await build({
   logLevel: 'info',
   outbase: 'src',
   metafile: true,
-  plugins: [noBundleScoper()]
+  //plugins: [noBundleScoper()]
 });
 
 // add empty folders from src to dist folder
