@@ -8,12 +8,12 @@ importers:
 
   .:
     dependencies:
+      chalk:
+        specifier: ^5.5.0
+        version: 5.5.0
       esbuild:
         specifier: ^0.25.8
         version: 0.25.8
-      fast-glob:
-        specifier: ^3.3.3
-        version: 3.3.3
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.0
@@ -33,9 +33,9 @@ importers:
       bumpp:
         specifier: ^10.2.2
         version: 10.2.2
-      chalk:
-        specifier: ^5.5.0
-        version: 5.5.0
+      fast-glob:
+        specifier: ^3.3.3
+        version: 3.3.3
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
