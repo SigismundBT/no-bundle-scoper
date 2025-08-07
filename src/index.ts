@@ -77,14 +77,6 @@ export function noBundleScoper(): Plugin {
             continue;
           } // make sure each outputs match a correlated tsconfig.json file
 
-          // get project root
-          const repoRoot = path.dirname(tsconfigPath);
-
-          // Get inDir
-          const inDir = path.dirname(inputPath);
-
-          if (!outDir || !inDir) continue;
-
           // read tsconfig
           let tsconfigRaw: string;
 
@@ -101,6 +93,7 @@ export function noBundleScoper(): Plugin {
           }
 
           const tsconfig = JSON.parse(tsconfigRaw);
+
           const baseUrl = tsconfig.compilerOptions?.baseUrl;
 
           if (!baseUrl) {
@@ -110,17 +103,24 @@ export function noBundleScoper(): Plugin {
             continue;
           }
 
-          // get import base
+          // Get inDir
+          const inDir = path.dirname(inputPath);
+          if (!outDir || !inDir) continue;
+
+          // get project root
+          const repoRoot = path.dirname(tsconfigPath);
+          
+          // get import base dir
           const importBase = path.resolve(repoRoot, baseUrl);
 
-          // get outDirRoot
+          // get abs. outDir path
           const relativeOutDirFromBase = path.relative(importBase, outDir);
           const absoluteOutDir = path.resolve(
             importBase,
             relativeOutDirFromBase
           );
 
-          // get inDirRoot
+          // get abs. inDir path
           const relativeinDirFromBase = path.relative(importBase, inDir);
           const inDirRoot = relativeinDirFromBase.split(path.sep)[0];
           const absoluteInDir = path.resolve(importBase, inDirRoot);
@@ -139,6 +139,8 @@ export function noBundleScoper(): Plugin {
 
             // parse resolvedPaths
             for (const resolvedImportPath of resolvedImportPaths) {
+
+              // set ext
               function withTsExt(filePath: string): string {
                 return path.extname(filePath) ? filePath : filePath + '.ts';
               }
@@ -177,6 +179,7 @@ export function noBundleScoper(): Plugin {
                 absoluteOutDir
               );
 
+              //access import path
               try {
                 await fs.access(importPath);
               } catch {
@@ -184,10 +187,13 @@ export function noBundleScoper(): Plugin {
                 continue;
               }
 
+              //get abs. output path
               const absoluteOutputPath = path.resolve(
                 process.cwd(),
                 outputPath
               );
+
+              //get output Dir
               const outputDir = path.dirname(absoluteOutputPath);
 
               // get relative import path
@@ -196,6 +202,7 @@ export function noBundleScoper(): Plugin {
                 importPath
               );
 
+              //parsing import path
               function normalizeImportPath(
                 relativeParsedImportPath: string
               ): string {
@@ -209,7 +216,7 @@ export function noBundleScoper(): Plugin {
                   normalized.startsWith('./') ||
                   normalized.startsWith('../') ||
                   normalized.startsWith('/') ||
-                  normalized.includes(':') // 防止補到 URL 或 Windows 路徑
+                  normalized.includes(':') 
                 ) {
                   return normalized;
                 }
@@ -220,6 +227,7 @@ export function noBundleScoper(): Plugin {
                 relativeParsedImportPath
               );
 
+              // access output and input
               try {
                 await fs.access(outputPath);
                 await fs.access(importPath);
@@ -228,6 +236,7 @@ export function noBundleScoper(): Plugin {
                 continue;
               }
 
+              // set changed imports
               if (!fileAliasMap.has(outputPath)) {
                 fileAliasMap.set(outputPath, []);
               }
@@ -242,6 +251,7 @@ export function noBundleScoper(): Plugin {
 
         const writeTasks: Promise<any>[] = [];
 
+        // write changed import paths
         for (const [outputPath, aliasList] of fileAliasMap.entries()) {
           writeTasks.push(
             limit(async () => {

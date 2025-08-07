@@ -87,14 +87,24 @@ await build({
 });
 ```
 
+> 📌 `metafile: true` is required — the plugin relies on esbuild's metafile to rewrite imports accurately.
+
 ---
 
-> 📌 `metafile: true` is required — the plugin relies on esbuild's metafile to rewrite imports accurately.
 
 ## 📦 Output Directory Requirement
 
 This plugin currently **requires** `esbuild`'s `outdir` option to locate your output files.  
 The `outfile` option is **not supported yet**, but may be considered in the future.
+
+---
+
+## ✅ When should you use this?
+
+- You're building a Node.js project with **esbuild**
+- You're using `tsconfig` paths / alias (like `@/`, `~`, etc.)
+- You're building **without** bundling (`bundle: false`)
+- You want to run the output files directly with native ESM support (`node --no-bundler`)
 
 ---
 
@@ -167,20 +177,7 @@ _This keeps the plugin lightweight, predictable, and avoids unintended cross-pac
 
 ---
 
-- **Alias-to-alias (chained alias) resolution is not supported.**  
-  I don't want to make my plugin fall into the void and make it unstable,  
-  so no, I'm not gonna make no-bundle-scoper support it in the near future.
 
----
-
-## ✅ When should you use this?
-
-- You're building a Node.js project with **esbuild**
-- You're using `tsconfig` paths / alias (like `@/`, `~`, etc.)
-- You're building **without** bundling (`bundle: false`)
-- You want to run the output files directly with native ESM support (`node --no-bundler`)
-
----
 
 ## License
 
